@@ -10,8 +10,6 @@ import signal
 class RandomWriter:
     def __init__(self, string_to_count):
         self.string_to_count = string_to_count
-        self.__count_in_file_1 = 0
-        self.__count_in_file_2 = 0
 
 # string_generator creates the random string
     async def __string_generator(self):
@@ -20,24 +18,30 @@ class RandomWriter:
         mylist = [rand_string, self.string_to_count]
         return random.choice(mylist)
 
+# writer writes the generated string in the file
+    async def __writer(self, fname, mode, string):
+        async with aiofiles.open(fname, mode) as f:
+            await f.write(string + " ")
+
+# string_counter counts the occurrences of string in the given file
+    async def __string_counter(self, fname):
+        async with aiofiles.open(fname, 'r') as f:
+            # read content of file to string
+            data = await f.read()
+            # get number of occurrences of the substring in the string
+            return data.count(self.string_to_count)
+
 # write_to_file writes random strings to both the files and then creates the counts.log file
     async def write_to_file(self):
         while True:
             pseudo_string_1 = await self.__string_generator()
             pseudo_string_2 = await self.__string_generator()
-            if pseudo_string_1 == self.string_to_count:
-                self.__count_in_file_1 = self.__count_in_file_1 + 1
-            async with aiofiles.open('File-1.txt', 'a') as f1:
-                await f1.write(pseudo_string_1+" ")
+            await self.__writer('File-1.txt', 'a', pseudo_string_1)
             await asyncio.sleep(1)
-            if pseudo_string_2 == self.string_to_count:
-                self.__count_in_file_2 = self.__count_in_file_2 + 1
-            async with aiofiles.open('File-2.txt', 'a') as f2:
-                await f2.write(pseudo_string_2+" ")
-            async with aiofiles.open('counts.log', 'w') as file:
-                await file.write(
-                    f'''The total number of occurrences for the “MARUTI” keyword by file-1 :{self.__count_in_file_1}
-                    \rThe total number of occurrences for the “MARUTI” keyword by file-2 :{self.__count_in_file_2}
+            await self.__writer('File-2.txt', 'a', pseudo_string_2)
+            await self.__writer('counts.log', 'w',
+                f'''The total number of occurrences for the “MARUTI” keyword by file-1 :{await self.__string_counter('File-1.txt')}
+                \rThe total number of occurrences for the “MARUTI” keyword by file-2 :{await self.__string_counter('File-2.txt')}
                 ''')
 
 
